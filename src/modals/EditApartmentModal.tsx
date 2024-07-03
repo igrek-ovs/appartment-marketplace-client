@@ -6,10 +6,11 @@ import {
     DialogContent,
     DialogTitle,
     TextField,
-    Typography,
 } from '@mui/material';
 import { IApartment, IApartmentDto } from '../models/apartment';
-import { updateApartment } from '../store/actions/apartmentActions';
+import { useDispatch } from 'react-redux';
+import { AppDispatch } from '../store/store';
+import { updateApartment } from '../slices/apartmentSlice';
 import { toast } from 'react-toastify';
 import {
     validateApartmentName,
@@ -26,6 +27,7 @@ interface EditApartmentModalProps {
 }
 
 const EditApartmentModal: React.FC<EditApartmentModalProps> = ({ open, onClose, apartment, onSave }) => {
+    const dispatch: AppDispatch = useDispatch();
     const [editedApartment, setEditedApartment] = useState<Partial<IApartmentDto>>({
         rooms: apartment?.rooms ?? 0,
         name: apartment?.name ?? '',
@@ -61,16 +63,23 @@ const EditApartmentModal: React.FC<EditApartmentModalProps> = ({ open, onClose, 
         }
 
         try {
-            const updatedApartment = await updateApartment(apartment.id, {
-                rooms: Number(editedApartment.rooms),
-                name: editedApartment.name || '',
-                price: Number(editedApartment.price),
-                description: editedApartment.description || '',
-            });
-            onSave(updatedApartment);
-            onClose();
+            const resultAction = await dispatch(updateApartment({
+                id: apartment.id,
+                apartmentDto: {
+                    rooms: Number(editedApartment.rooms),
+                    name: editedApartment.name || '',
+                    price: Number(editedApartment.price),
+                    description: editedApartment.description || '',
+                },
+            }));
+
+            if (updateApartment.fulfilled.match(resultAction)) {
+                onSave(resultAction.payload);
+                onClose();
+            } else {
+                toast.error('Failed to update apartment');
+            }
         } catch (error) {
-            console.error('Error updating apartment:', error);
             toast.error('Failed to update apartment');
         }
     };
